@@ -1,6 +1,6 @@
 import { EventBus, Events } from '../utils/EventBus'
 
-export type AlertType = 'SPEED_DROP' | 'SHARP_HEADING' | 'DRAFT_MISMATCH'
+export type AlertType = 'SPEED_DROP' | 'SHARP_HEADING' | 'DRAFT_MISMATCH' | 'AIS_GAP' | 'GEOFENCE_ENTRY' | 'GEOFENCE_EXIT'
 export type AlertSeverity = 'info' | 'warning' | 'critical'
 
 export interface AnomalyAlert {

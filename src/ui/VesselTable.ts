@@ -21,9 +21,12 @@ const NAV_SHORT: Record<string, string> = {
 }
 
 const ALERT_LABEL: Record<string, string> = {
-  SPEED_DROP:     'SPD DROP',
-  SHARP_HEADING:  'HEADING',
-  DRAFT_MISMATCH: 'DRAUGHT',
+  SPEED_DROP:      'SPD DROP',
+  SHARP_HEADING:   'HEADING',
+  DRAFT_MISMATCH:  'DRAUGHT',
+  AIS_GAP:         'DARK',
+  GEOFENCE_ENTRY:  'ZONE ↓',
+  GEOFENCE_EXIT:   'ZONE ↑',
 }
 
 // Alerts older than this are considered stale and not shown

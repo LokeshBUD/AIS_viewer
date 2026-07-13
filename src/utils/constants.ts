@@ -28,6 +28,10 @@ export const HEADING_CHANGE_THRESHOLD = 35
 /** Vessels not seen within this ms are purged */
 export const STALE_VESSEL_MS = 10 * 60 * 1000
 
+/** AIS gap thresholds — vessel must have history.length >= 5 before gap fires */
+export const AIS_GAP_WARNING_MS  = 5  * 60 * 1000   // 5 min → warning
+export const AIS_GAP_CRITICAL_MS = 15 * 60 * 1000   // 15 min → critical
+
 export const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 16000]
 
 /** Water normal map — CDN for dev, place in /public/textures/ for offline prod */

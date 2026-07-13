@@ -5,6 +5,7 @@ import { VesselTracker } from './ais/VesselTracker'
 
 import { AlertManager } from './agent/AlertManager'
 import { AnomalyDetector } from './agent/AnomalyDetector'
+import { GeofenceMonitor } from './agent/GeofenceMonitor'
 
 import { HUD } from './ui/HUD'
 import { VesselInfoPanel } from './ui/VesselInfoPanel'
@@ -14,12 +15,15 @@ import { VesselTable } from './ui/VesselTable'
 
 import { EventBus, Events } from './utils/EventBus'
 import type { WSStatus } from './ais/WebSocketClient'
+import { InMemoryHistoryStore } from './utils/HistoryStore'
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 
-const tracker = new VesselTracker()
-const alerts  = new AlertManager()
-new AnomalyDetector(alerts)
+const historyStore = new InMemoryHistoryStore()
+const tracker      = new VesselTracker(historyStore)
+const alerts       = new AlertManager()
+new AnomalyDetector(alerts, tracker)
+new GeofenceMonitor(alerts)
 
 const hud         = new HUD()
 new VesselInfoPanel(tracker)

@@ -4,28 +4,39 @@ import { AlertManager } from './AlertManager'
 import { checkSpeedDrop } from './rules/SpeedDropRule'
 import { checkHeadingChange } from './rules/HeadingChangeRule'
 import { checkDraftMismatch } from './rules/DraftMismatchRule'
+import { checkAisGap } from './rules/AisGapRule'
 
 type RuleFn = (v: VesselState) => ReturnType<typeof checkSpeedDrop>
 
-const RULES: RuleFn[] = [checkSpeedDrop, checkHeadingChange, checkDraftMismatch]
+// Rules run on every VESSEL_UPDATED (throttled to 15s per vessel)
+const LIVE_RULES: RuleFn[] = [checkSpeedDrop, checkHeadingChange, checkDraftMismatch]
 
-// Minimum ms between rule evaluations per vessel — prevents CPU spike in dense regions
+// Minimum ms between live-rule evaluations per vessel
 const CHECK_INTERVAL_MS = 15_000
+// How often the gap scanner sweeps all known vessels
+const GAP_SCAN_INTERVAL_MS = 60_000
 
 export class AnomalyDetector {
-  private lastChecked = new Map<number, number>()
-  private totalChecks = 0
+  private lastChecked    = new Map<number, number>()
+  private lastGapChecked = new Map<number, number>()
+  private totalChecks    = 0
 
-  constructor(private alertManager: AlertManager) {
-    EventBus.on<VesselState>(Events.VESSEL_UPDATED, v => this.check(v))
+  constructor(
+    private alertManager: AlertManager,
+    private tracker: { getAll(): ReadonlyMap<number, VesselState> },
+  ) {
+    EventBus.on<VesselState>(Events.VESSEL_UPDATED, v => this.checkLive(v))
 
-    // Confirm engine is running — log every 60s
+    // Scan ALL vessels for AIS gaps — catches vessels that stopped transmitting
+    setInterval(() => this.scanGaps(), GAP_SCAN_INTERVAL_MS)
+
+    // Engine heartbeat log
     setInterval(() => {
-      console.log(`[AnomalyDetector] checks run: ${this.totalChecks}, alerts fired: ${this.alertManager.getAll().length}`)
+      console.log(`[AnomalyDetector] checks: ${this.totalChecks}, alerts: ${this.alertManager.getAll().length}, tracking: ${this.tracker.getAll().size} vessels`)
     }, 60_000)
   }
 
-  private check(vessel: VesselState): void {
+  private checkLive(vessel: VesselState): void {
     const now  = Date.now()
     const last = this.lastChecked.get(vessel.mmsi) ?? 0
     if (now - last < CHECK_INTERVAL_MS) return
@@ -33,8 +44,21 @@ export class AnomalyDetector {
     this.lastChecked.set(vessel.mmsi, now)
     this.totalChecks++
 
-    for (const rule of RULES) {
+    for (const rule of LIVE_RULES) {
       const alert = rule(vessel)
+      if (alert) this.alertManager.add(alert)
+    }
+  }
+
+  private scanGaps(): void {
+    const now = Date.now()
+    for (const vessel of this.tracker.getAll().values()) {
+      // Gap rule has its own dedup bucket via alert id — but also throttle scan per vessel
+      const lastScan = this.lastGapChecked.get(vessel.mmsi) ?? 0
+      if (now - lastScan < GAP_SCAN_INTERVAL_MS) continue
+      this.lastGapChecked.set(vessel.mmsi, now)
+
+      const alert = checkAisGap(vessel)
       if (alert) this.alertManager.add(alert)
     }
   }

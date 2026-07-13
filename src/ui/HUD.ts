@@ -14,6 +14,9 @@ export class HUD {
     SPEED_DROP:     0,
     SHARP_HEADING:  0,
     DRAFT_MISMATCH: 0,
+    AIS_GAP:        0,
+    GEOFENCE_ENTRY: 0,
+    GEOFENCE_EXIT:  0,
   }
   private alertTypeEls: Record<string, HTMLElement> = {}
 
@@ -72,6 +75,18 @@ export class HUD {
             <span class="stat-lbl">DRAUGHT</span>
             <span id="ac-draft-mismatch" class="stat-val">0</span>
           </div>
+          <div class="stat-row">
+            <span class="stat-lbl">DARK</span>
+            <span id="ac-ais-gap" class="stat-val">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">ZONE ↓</span>
+            <span id="ac-geofence-entry" class="stat-val">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">ZONE ↑</span>
+            <span id="ac-geofence-exit" class="stat-val">0</span>
+          </div>
         </div>
 
         <!-- Bottom left: coordinates -->
@@ -123,6 +138,9 @@ export class HUD {
       SPEED_DROP:     document.getElementById('ac-speed-drop')!,
       SHARP_HEADING:  document.getElementById('ac-sharp-heading')!,
       DRAFT_MISMATCH: document.getElementById('ac-draft-mismatch')!,
+      AIS_GAP:        document.getElementById('ac-ais-gap')!,
+      GEOFENCE_ENTRY: document.getElementById('ac-geofence-entry')!,
+      GEOFENCE_EXIT:  document.getElementById('ac-geofence-exit')!,
     }
 
     const searchEl = document.getElementById('vessel-search') as HTMLInputElement

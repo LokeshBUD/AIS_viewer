@@ -3,12 +3,13 @@ import { RingBuffer } from '../utils/RingBuffer'
 import { parseRaw, extractPosition, extractStatic, shipTypeToCategory } from './AISParser'
 import { VESSEL_HISTORY_LEN, STALE_VESSEL_MS } from '../utils/constants'
 import type { VesselState, PositionSnapshot } from './types'
+import type { IHistoryStore } from '../utils/HistoryStore'
 
 export class VesselTracker {
   private vessels = new Map<number, VesselState>()
   private history = new Map<number, RingBuffer<PositionSnapshot>>()
 
-  constructor() {
+  constructor(private historyStore?: IHistoryStore) {
     EventBus.on<string>(Events.WS_MESSAGE, (raw) => this.handle(raw))
     setInterval(() => this.purgeStale(), 60_000)
   }
@@ -34,9 +35,11 @@ export class VesselTracker {
       vessel.lastUpdate = Date.now()
       if (!vessel.name || vessel.name.startsWith('MMSI:')) vessel.name = pos.name
 
+      const snapshot: PositionSnapshot = { lat: pos.lat, lon: pos.lon, sog: pos.sog, cog: pos.cog, timestamp: Date.now() }
       const buf = this.history.get(pos.mmsi)!
-      buf.push({ lat: pos.lat, lon: pos.lon, sog: pos.sog, cog: pos.cog, timestamp: Date.now() })
+      buf.push(snapshot)
       vessel.history = buf.toArray()
+      this.historyStore?.append(pos.mmsi, snapshot)
 
       EventBus.emit(Events.VESSEL_UPDATED, vessel)
     }

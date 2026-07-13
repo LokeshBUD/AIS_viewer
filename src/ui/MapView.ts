@@ -9,6 +9,7 @@ import { PORTS_LIST, CONTINENT_COLORS, lookupPort } from '../utils/ports'
 import { maritimeRoute } from '../utils/maritimeRoute'
 import { destColor } from '../utils/destColor'
 import { makeVesselDivIcon, updateVesselIconTransform, setVesselMarkerState } from './VesselIcon'
+import { GEOZONES } from '../utils/geozones'
 
 const TILE_VOYAGER  = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
 const TILE_SAT_BASE = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -103,6 +104,7 @@ export class MapView {
     })
 
     this.buildPortMarkers()
+    this.buildZoneOverlays()
 
     // Populate state; markers created only for non-cluster modes
     for (const v of allVessels.values()) this.upsert(v)
@@ -298,10 +300,15 @@ export class MapView {
       this.setMarkerState(m, m === mmsi ? 'selected' : 'dimmed')
     }
 
-    const sel = this.markers.get(mmsi)
+    const sel   = this.markers.get(mmsi)
+    const state = this.states.get(mmsi)
     if (sel) {
       sel.openPopup()
       this.map?.panTo(sel.getLatLng(), { animate: true, duration: 0.5 })
+    } else if (state && this.map) {
+      // Cluster mode or vessel outside viewport — fly in to icon zoom so vessel becomes visible
+      const targetZoom = Math.max(this.map.getZoom(), ICON_ZOOM)
+      this.map.flyTo([state.lat, state.lon], targetZoom, { duration: 0.7 })
     }
 
     this.drawRoute(mmsi)
@@ -464,6 +471,33 @@ export class MapView {
         { direction: 'right', className: 'port-tooltip', offset: [6, 0] },
       )
       m.addTo(this.map)
+    }
+  }
+
+  // ── Geofence zone overlays ────────────────────────────────────────────────────
+
+  private buildZoneOverlays(): void {
+    if (!this.map) return
+    for (const zone of GEOZONES) {
+      const color = zone.severity === 'warning' ? '#ffaa00' : '#00d4ff'
+      L.rectangle(
+        [[zone.south, zone.west], [zone.north, zone.east]] as L.LatLngBoundsExpression,
+        {
+          color,
+          weight:      1.5,
+          opacity:     0.85,
+          fillColor:   color,
+          fillOpacity: zone.severity === 'warning' ? 0.18 : 0.10,
+          dashArray:   '6 4',
+          interactive: true,
+          renderer:    this.renderer,
+        },
+      )
+        .bindTooltip(
+          `<span style="color:${color};letter-spacing:1px;font-size:10px">${zone.name}${zone.risk ? `<br><span style="color:var(--c-warn);font-size:9px">${zone.risk}</span>` : ''}</span>`,
+          { sticky: true, className: 'port-tooltip' },
+        )
+        .addTo(this.map)
     }
   }
 
