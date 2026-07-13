@@ -60,8 +60,9 @@ graph TD
     %% Connections
     WS_Client == "ws://localhost:3001/ws" ==> AIS
     AIS == "wss://stream.aisstream.io" ==> ExternalStream
-### Server (`server/`)
 ```
+### Server (`server/`)
+
 
 The server is a thin relay — it does not process or interpret AIS messages. Its only job is to:
 
