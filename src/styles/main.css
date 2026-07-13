@@ -146,6 +146,13 @@ body {
   min-width: 200px;
 }
 
+/* Alert type counts (below system status) */
+.hud-alert-counts {
+  top: 164px;
+  left: 16px;
+  min-width: 200px;
+}
+
 .stat-row {
   display: flex;
   justify-content: space-between;
@@ -228,7 +235,7 @@ body {
    Filter panel (left, below stats)
 ───────────────────────────────────────── */
 .hud-filter {
-  top: 176px;
+  top: 290px;
   left: 16px;
   min-width: 200px;
 }

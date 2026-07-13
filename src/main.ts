@@ -35,9 +35,10 @@ ws.connect()
 EventBus.on<WSStatus>(Events.WS_STATUS_CHANGED, s => hud.setWSStatus(s))
 
 let alertCount = 0
-EventBus.on(Events.ANOMALY_DETECTED, () => {
+EventBus.on<{ type: string }>(Events.ANOMALY_DETECTED, (alert) => {
   alertCount++
   hud.setAlertCount(alertCount)
+  hud.bumpAlertType(alert.type)
 })
 
 // ─── Start map ───────────────────────────────────────────────────────────────

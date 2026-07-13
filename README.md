@@ -19,6 +19,7 @@ A real-time global vessel tracking dashboard powered by live AIS (Automatic Iden
 ---
 
 ## Architecture
+
 ```mermaid
 graph TD
     %% Base Theme Overrides (Ensures high visibility on Dark & Light modes)
@@ -27,20 +28,20 @@ graph TD
     classDef server fill:#efebe9,stroke:#4e342e,stroke-width:2px,color:#3e2723;
     classDef external fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#e65100;
     classDef logic fill:#ffffff,stroke:#757575,stroke-width:1px,color:#212121;
-    
+
     %% 1. EXTERNAL DATA SOURCE (Top)
     %% -----------------------------------------------------------------
     ExternalStream["🌐 aisstream.io <br> (External Stream)"]:::external
-    
+
     %% 2. BACKEND LAYER (Middle)
     %% -----------------------------------------------------------------
     subgraph Server ["Node.js Server (Express + ws)"]
         AIS["⚙️ AISRelay"]:::logic
         Health["🏥 GET /health"]:::logic
-        
+
         %% Features listed cleanly inside a single readable card
         Features["📦 AIS Functions:<br>• Caches latest position + static data per MMSI<br>• Sends SNAPSHOT to new clients on connect<br>• Forwards live messages to all clients"]:::logic
-        
+
         AIS --- Features
     end
     class Server server;
@@ -49,13 +50,13 @@ graph TD
     %% -----------------------------------------------------------------
     subgraph Client ["Browser Client (Vite + TS + Leaflet.js)"]
         WS_Client["🔌 WebSocketClient"]:::logic
-        
+
         %% Data Processing Pipelines
         VT["🚢 VesselTracker"]:::logic
         EB["🚌 EventBus"]:::logic
         AD["⚠️ AnomalyDetector"]:::logic
         AM["🚨 AlertManager"]:::logic
-        
+
         %% UI Components
         MV["🗺️ MapView <br> (Hybrid Canvas/Icon)"]:::logic
         UI["📊 UI Components <br> (Table / FilterPanel / HUD)"]:::logic
@@ -75,8 +76,8 @@ graph TD
     ExternalStream == "wss://stream.aisstream.io" ==> AIS
     AIS == "ws://localhost:3001/ws" ==> WS_Client
 ```
-### Server (`server/`)
 
+### Server (`server/`)
 
 The server is a thin relay — it does not process or interpret AIS messages. Its only job is to:
 
@@ -96,10 +97,11 @@ The server is a thin relay — it does not process or interpret AIS messages. It
 The client is a single-page application bundled by Vite. It receives raw AIS JSON from the relay WebSocket and handles all parsing, state management, rendering, and intelligence locally in the browser.
 
 **Data pipeline:**
+
 ```mermaid
 sequenceDiagram
     autonumber
-    
+
     %% Participant Definitions with Clear Component Labels
     participant WS as 🔌 WebSocketClient
     participant EB as 🚌 EventBus
@@ -112,7 +114,7 @@ sequenceDiagram
     %% 1. Incoming Data Flow
     Note over WS: Receives ws events
     WS->>EB: emit(WS_MESSAGE, raw JSON string)
-    
+
     %% 2. Processing Pipeline
     critical Data Ingestion & State Update
         EB->>VT: handle()
@@ -140,7 +142,7 @@ sequenceDiagram
                 deactivate AD
             end
         end
-        
+
     and UI Rendering Lifecycle
         %% Map Updates
         rect rgb(245, 255, 245)
@@ -148,12 +150,12 @@ sequenceDiagram
                 EB-->>MV: upsert(vessel)
             end
         end
-        
+
         %% Table & HUD
         loop Every 2s
             EB-->>UI: refresh() VesselTable
         end
-        
+
         Note over UI: HUD.setVesselCount() invoked
     end
 ```
@@ -322,12 +324,13 @@ Visual exploration of global shipping patterns — which routes are busiest, whi
 
 ## Future Work
 
-### Short term
+### Short term (actively working on)
 
-- **Geofence alerts** — define polygon zones (port approaches, restricted areas, exclusive economic zones) and alert when a vessel enters or exits. Currently all position history is available; this just needs a point-in-polygon check per update.
-- **AIS gap detection** — flag vessels that were transmitting and then go silent for more than N minutes while in open ocean (a common indicator of deliberate transponder shutdown, so-called "going dark").
-- **Vessel clustering at low zoom** — replace overlapping canvas dots at global zoom with count-labelled cluster circles, reducing visual noise when thousands of vessels are in a small screen area.
-- **Click-to-search in table** — clicking a vessel in the table should pan and zoom the map to that vessel's position even if it is not currently in the viewport (especially relevant in canvas mode where the marker may not yet exist).
+| Feature / Objective   | Layer             | Technical Scope / Approach                                                                                                                                                     |     Status     |
+| :-------------------- | :---------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------: |
+| **Geofence Alerts**   | Backend / Engine  | Implement efficient point-in-polygon checks (e.g., ray-casting or spatial indexing) against pre-defined polygon zones (`PolygonAlert`) on incoming position updates.           | 🟡 In Progress |
+| **AIS Gap Detection** | Backend / State   | Monitor absolute global timestamps per`MMSI`. Trigger a dark-vessel anomaly state if a transmission drop exceeds $N$ minutes while last known coordinates indicate open ocean. | 🟡 In Progress |
+| **Vessel Clustering** | Frontend / Canvas | Replace dense overlapping canvas markers at low zoom levels with dynamic, count-labeled cluster rings to optimize client-side render loops and HUD clarity.                    | 🟡 In Progress |
 
 ### Medium term
 

@@ -9,6 +9,14 @@ export class HUD {
   private coordEl!:       HTMLElement
   private onSearchCb?: (query: string) => void
 
+  // alert type counts
+  private alertTypeCounts: Record<string, number> = {
+    SPEED_DROP:     0,
+    SHARP_HEADING:  0,
+    DRAFT_MISMATCH: 0,
+  }
+  private alertTypeEls: Record<string, HTMLElement> = {}
+
   constructor() {
     const root = document.getElementById('ui-root')!
     root.innerHTML = `
@@ -46,6 +54,23 @@ export class HUD {
             <span class="stat-lbl">RELAY</span>
             <span id="ws-dot" class="ws-dot"></span>
             <span id="ws-status" class="stat-val">CONNECTING</span>
+          </div>
+        </div>
+
+        <!-- Alert type counts (below system status) -->
+        <div class="hud-panel hud-alert-counts">
+          <div class="hud-panel-header">ANOMALY COUNTS</div>
+          <div class="stat-row">
+            <span class="stat-lbl">SPD DROP</span>
+            <span id="ac-speed-drop" class="stat-val">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">HEADING</span>
+            <span id="ac-sharp-heading" class="stat-val">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">DRAUGHT</span>
+            <span id="ac-draft-mismatch" class="stat-val">0</span>
           </div>
         </div>
 
@@ -94,6 +119,12 @@ export class HUD {
     this.msgRateEl     = document.getElementById('stat-msgrate')!
     this.coordEl       = document.getElementById('coord-display')!
 
+    this.alertTypeEls = {
+      SPEED_DROP:     document.getElementById('ac-speed-drop')!,
+      SHARP_HEADING:  document.getElementById('ac-sharp-heading')!,
+      DRAFT_MISMATCH: document.getElementById('ac-draft-mismatch')!,
+    }
+
     const searchEl = document.getElementById('vessel-search') as HTMLInputElement
     searchEl.addEventListener('input', () => this.onSearchCb?.(searchEl.value.trim()))
     searchEl.addEventListener('keydown', e => {
@@ -102,6 +133,17 @@ export class HUD {
   }
 
   onSearch(cb: (query: string) => void): void { this.onSearchCb = cb }
+
+  bumpAlertType(type: string): void {
+    if (!(type in this.alertTypeCounts)) return
+    this.alertTypeCounts[type]++
+    const el = this.alertTypeEls[type]
+    if (!el) return
+    const n = this.alertTypeCounts[type]
+    el.textContent = n.toString()
+    // color escalates as count grows
+    el.style.color = n >= 10 ? 'var(--c-danger)' : n >= 3 ? 'var(--c-warn)' : 'var(--c-text)'
+  }
 
   setVesselCount(n: number): void {
     this.vesselCountEl.textContent = n.toString()
