@@ -3,7 +3,7 @@
 A real-time global vessel tracking dashboard powered by live AIS (Automatic Identification System) data. Ships broadcast their position, speed, heading, and identity via AIS transponders; this application receives those broadcasts and visualises them on an interactive map with anomaly detection, filtering, and vessel intelligence.
 
 ---
-Live Link: https://lokeshbud.github.io/AIS_viwer/
+Live Link: https://lokeshbud.github.io/AIS_viewer/
 ---
 
 ## What It Does
