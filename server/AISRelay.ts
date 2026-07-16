@@ -3,6 +3,7 @@ import WebSocket from 'ws'
 const MAX_CACHE        = 8000
 const MAX_BACKOFF_MS   = 60_000   // cap reconnect delay at 60s
 const BASE_BACKOFF_MS  = 2_000    // start at 2s (aisstream 429 = server is busy, don't hammer)
+const MAX_CLIENTS      = Number(process.env.MAX_CLIENTS ?? 500)   // cap concurrent WS clients to bound snapshot/broadcast cost under a connection flood
 
 interface CachedMessage {
   raw: string
@@ -77,6 +78,10 @@ export class AISRelay {
   }
 
   addClient(ws: WebSocket): void {
+    if (this.clients.size >= MAX_CLIENTS) {
+      ws.close(1013, 'server full')
+      return
+    }
     this.clients.add(ws)
     // Send server status + snapshot of current vessels
     ws.send(JSON.stringify({ type: 'SERVER_STATUS', status: this.aisWs?.readyState === WebSocket.OPEN ? 'connected' : 'disconnected' }))

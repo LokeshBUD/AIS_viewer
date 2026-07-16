@@ -195,6 +195,11 @@ Create a `.env` file in the project root:
 ```
 AIS_API=your_aisstream_api_key_here
 PORT=3001
+
+# Optional hardening (see Security section below)
+MAX_CLIENTS=500
+ALLOWED_ORIGINS=https://lokeshbud.github.io,http://localhost:5173
+HEALTH_TOKEN=some_random_secret
 ```
 
 ### Run (development)
@@ -217,10 +222,22 @@ Vite output lands in `dist/client/`; the server serves it as static files.
 ### Health check
 
 ```bash
-curl http://localhost:3001/health
+curl -H "x-health-token: some_random_secret" http://localhost:3001/health
 ```
 
-Returns connected client count, tracked vessel count, and live message rate.
+Returns connected client count, tracked vessel count, and live message rate. Returns 404 if `HEALTH_TOKEN` is unset or the header doesn't match — this endpoint is public on the internet (behind the same tunnel as `/ws`), so it's locked down by default.
+
+---
+
+## Security
+
+The relay's tunnel URL (`public/backend-url.json`) is shipped in the gh-pages bundle, so `/ws` and `/health` are reachable by anyone, not just the frontend. Mitigations in place:
+
+- **`MAX_CLIENTS`** — caps concurrent WebSocket connections (default 500) so a connection flood can't exhaust server memory via repeated snapshot sends.
+- **`ALLOWED_ORIGINS`** — the WS upgrade is rejected unless the request's `Origin` header is in this list. Blocks casual browser-based embedding/scraping from other sites. Note: a scripted (non-browser) client can still forge an `Origin` header, so this is a speed bump, not a hard boundary — pair it with `MAX_CLIENTS` and upstream rate limiting if you need stronger guarantees.
+- **`HEALTH_TOKEN`** — `/health` returns 404 unless this is set and the caller sends a matching `x-health-token` header. Prevents anyone from polling live client/vessel counts off the public tunnel URL.
+
+None of these replace edge-level protection. If you need real DDoS/rate-limit protection, migrate off the `trycloudflare.com` quick tunnel to a named Cloudflare Tunnel, which supports Cloudflare Access and WAF rules.
 
 ---
 

@@ -9,16 +9,36 @@ import { AISRelay } from './AISRelay'
 
 const PORT = Number(process.env.PORT ?? 3001)
 const API_KEY = process.env.AIS_API ?? ''
+const HEALTH_TOKEN = process.env.HEALTH_TOKEN ?? ''
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? 'https://lokeshbud.github.io,http://localhost:5173')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean)
 
 if (!API_KEY) {
   console.error('[server] AIS_API not set in .env — exiting')
   process.exit(1)
 }
 
+if (process.env.NODE_ENV === 'production' && !HEALTH_TOKEN) {
+  console.warn('[server] HEALTH_TOKEN not set — /health will be disabled in production')
+}
 
 const app = express()
 const httpServer = createServer(app)
-const wss = new WebSocketServer({ server: httpServer, path: '/ws' })
+const wss = new WebSocketServer({
+  server: httpServer,
+  path: '/ws',
+  verifyClient: (info, cb) => {
+    const origin = info.origin
+    if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
+      console.warn(`[server] rejected WS connection from disallowed origin: ${origin || '(none)'}`)
+      cb(false, 403, 'Forbidden')
+      return
+    }
+    cb(true)
+  },
+})
 
 const relay = new AISRelay(API_KEY)
 relay.connect()
@@ -27,8 +47,13 @@ wss.on('connection', (ws: WebSocket) => {
   relay.addClient(ws)
 })
 
-// Health endpoint
-app.get('/health', (_req, res) => {
+// Health endpoint — disabled unless HEALTH_TOKEN is set and matched, to avoid
+// leaking client/vessel counts to anyone probing the public tunnel URL.
+app.get('/health', (req, res) => {
+  if (!HEALTH_TOKEN || req.get('x-health-token') !== HEALTH_TOKEN) {
+    res.status(404).end()
+    return
+  }
   res.json({
     status: 'ok',
     clients: relay.clientCount,
