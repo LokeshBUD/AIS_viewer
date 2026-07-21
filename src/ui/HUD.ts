@@ -7,6 +7,8 @@ export class HUD {
   private wsDotel!:       HTMLElement
   private msgRateEl!:     HTMLElement
   private coordEl!:       HTMLElement
+  private outageModalEl!: HTMLElement
+  private outageStatusEl!: HTMLElement
   private onSearchCb?: (query: string) => void
 
   private alertTypeEls: Record<string, HTMLElement> = {}
@@ -115,6 +117,21 @@ export class HUD {
         <div class="corner corner-tr"></div>
         <div class="corner corner-bl"></div>
         <div class="corner corner-br"></div>
+
+        <!-- Outage modal: shown when the live AIS feed is down. Not closable —
+             it lifts itself the instant SERVER_STATUS reports 'connected' again. -->
+        <div id="outage-modal" class="outage-overlay hidden">
+          <div class="outage-box">
+            <div class="outage-spinner"></div>
+            <div class="outage-title">LIVE FEED UNAVAILABLE</div>
+            <div class="outage-body">
+              This is not an app issue — the upstream AIS data provider is temporarily down.
+              The dashboard is reconnecting automatically and will resume the moment
+              the feed comes back online.
+            </div>
+            <div class="outage-status">STATUS: <span id="outage-status-text">RECONNECTING…</span></div>
+          </div>
+        </div>
       </div>
     `
 
@@ -124,6 +141,8 @@ export class HUD {
     this.wsDotel       = document.getElementById('ws-dot')!
     this.msgRateEl     = document.getElementById('stat-msgrate')!
     this.coordEl       = document.getElementById('coord-display')!
+    this.outageModalEl  = document.getElementById('outage-modal')!
+    this.outageStatusEl = document.getElementById('outage-status-text')!
 
     this.alertTypeEls = {
       SPEED_DROP:     document.getElementById('ac-speed-drop')!,
@@ -181,6 +200,15 @@ export class HUD {
     this.wsStatusEl.style.color = colors[status]
     this.wsDotel.style.background = colors[status]
     this.wsDotel.classList.toggle('ws-dot-pulse', status === 'connected')
+  }
+
+  showOutageModal(status: WSStatus): void {
+    this.outageStatusEl.textContent = status === 'error' ? 'RETRYING…' : 'RECONNECTING…'
+    this.outageModalEl.classList.remove('hidden')
+  }
+
+  hideOutageModal(): void {
+    this.outageModalEl.classList.add('hidden')
   }
 
   setCoords(lat: number, lon: number): void {

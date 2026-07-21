@@ -40,6 +40,25 @@ ws.connect()
 
 EventBus.on<WSStatus>(Events.WS_STATUS_CHANGED, s => hud.setWSStatus(s))
 
+// Outage modal: gate on a short grace period so a momentary reconnect blip
+// doesn't flash the full-screen overlay — only a feed that's actually down
+// for a few seconds should block the view.
+const OUTAGE_GRACE_MS = 4000
+let outageTimer: ReturnType<typeof setTimeout> | null = null
+EventBus.on<WSStatus>(Events.WS_STATUS_CHANGED, status => {
+  if (status === 'connected') {
+    if (outageTimer) { clearTimeout(outageTimer); outageTimer = null }
+    hud.hideOutageModal()
+    return
+  }
+  if (!outageTimer) {
+    outageTimer = setTimeout(() => {
+      outageTimer = null
+      hud.showOutageModal(status)
+    }, OUTAGE_GRACE_MS)
+  }
+})
+
 // ZONE ↑ (GEOFENCE_EXIT) is a one-time crossing event, not a steady-state
 // condition — there's no "currently exited" to track, so it stays a
 // cumulative session count fed by the alert stream. Everything else is

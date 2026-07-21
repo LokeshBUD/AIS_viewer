@@ -820,3 +820,67 @@ body {
    Utility
 ───────────────────────────────────────── */
 .hidden { display: none !important; }
+
+/* ─────────────────────────────────────────
+   Outage Modal — blocks interaction until the
+   upstream AIS feed reconnects. Not closable.
+───────────────────────────────────────── */
+.outage-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 8, 16, 0.85);
+  backdrop-filter: var(--blur);
+  pointer-events: all;
+}
+
+.outage-box {
+  width: min(440px, 88vw);
+  padding: 28px 26px;
+  background: var(--panel-bg);
+  border: 1px solid var(--c-danger);
+  box-shadow: 0 0 24px rgba(255, 68, 68, 0.25);
+  text-align: center;
+}
+
+.outage-spinner {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 16px;
+  border: 3px solid var(--c-border);
+  border-top-color: var(--c-danger);
+  border-radius: 50%;
+  animation: outage-spin 0.9s linear infinite;
+}
+
+@keyframes outage-spin {
+  to { transform: rotate(360deg); }
+}
+
+.outage-title {
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  color: var(--c-danger);
+  margin-bottom: 12px;
+}
+
+.outage-body {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--c-muted);
+  margin-bottom: 16px;
+}
+
+.outage-status {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--c-text);
+  border-top: 1px solid var(--c-border);
+  padding-top: 12px;
+}
+
+#outage-status-text { color: var(--c-warn); }
